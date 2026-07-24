@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Parcel PaaS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="/assets/index-CM2igu5h.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Cyi8HAW6.css">
+  </head>
+  <body>
+    <div class="container">
+      
+      <!-- Page Header -->
+      <header class="header">
+        <h1>Parcel PaaS</h1>
+        <p>Simple deployment platform for GitHub repositories</p>
+      </header>
+
+      <!-- Section 1: Shown before user logs in -->
+      <div id="login-section" class="card text-center">
+        <p>Connect your GitHub account to view and deploy your projects.</p>
+        <button id="login-button" class="btn btn-github">
+          Sign in with GitHub
+        </button>
+      </div>
+
+      <!-- Section 2: Shown while fetching repositories from backend -->
+      <div id="loading-section" class="card text-center" style="display: none;">
+        <p class="loading-text">Connecting to GitHub & loading your repositories...</p>
+      </div>
+
+      <!-- Section 3: Shown after successful login -->
+      <div id="dashboard-section" style="display: none;">
+        <div class="dashboard-header">
+          <h2>Your Repositories</h2>
+          <button id="logout-button" class="btn-text">Disconnect</button>
+        </div>
+
+        <!-- List of repositories will be inserted here by main.js -->
+        <ul id="repo-list" class="repo-list"></ul>
+      </div>
+
+    </div>
+
+    <!-- Main JavaScript Logic -->
+  </body>
+</html>
