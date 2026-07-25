@@ -1,136 +1,133 @@
 # Parcel PaaS
 
-**Parcel PaaS** is a lightweight, developer-friendly Platform-as-a-Service (PaaS) designed to import source code (via GitHub OAuth or ZIP archives), dynamically generate build configurations, and deploy isolated application containers using a custom container runtime (`dock`).
-
-> [!IMPORTANT]  
-> **Custom Container Runtime Integration (`dock`)**  
-> Parcel PaaS uses a proprietary/custom container engine called **`dock`** (e.g., `dock-minidocker`) for container management. Image builds, execution, process listing (`dock ps`), and container inspection (`dock inspect`) interface directly with `dock`.
+Parcel PaaS is a Platform-as-a-Service designed to import source code (via GitHub OAuth or ZIP archives), dynamically generate build configurations, and deploy isolated application containers using a custom container runtime (`dock`).
 
 ---
 
 ## System Architecture
 
-```mermaid
-flowchart TD
-    subgraph Client["Frontend Layer (Vanilla Web UI)"]
-        UI["Minimal SPA Dashboard<br/>(Vanilla HTML/CSS/JS)"]
-    end
+The system consists of four main layers:
 
-    subgraph API["Backend Service Layer (FastAPI)"]
-        AUTH["Auth Router<br/>(OAuth & Local Auth)"]
-        SOURCE["Source Manager<br/>(GitHub & ZIP Uploads)"]
-        BUILDER["Build Generator<br/>(Dockerfile & Packager)"]
-        DEPLOYER["Deployment Manager<br/>(dock CLI Driver)"]
-    end
+1. Frontend Layer
+   - Minimal Single Page Application built with HTML, CSS, and Vanilla JavaScript.
+   - Communicates with the backend using REST APIs.
 
-    subgraph Storage["Persistence & Local Storage"]
-        DB[(Relational DB<br/>Users, Repos, Builds, Containers)]
-        FS["Artifact Storage<br/>/tmp/parcel-builds/"]
-    end
+2. Backend API Layer
+   - Built with FastAPI (Python) and SQLAlchemy Async ORM.
+   - Handles authentication, OAuth integrations, source downloads, and container operations.
 
-    subgraph Runtime["Container Runtime Layer"]
-        DOCK["dock Container Engine<br/>(dock build / run / ps / inspect)"]
-    end
+3. Persistence & Database Layer
+   - PostgreSQL database accessed asynchronously via asyncpg.
+   - Managed using Alembic for database migrations.
+   - Tables: users, auth_providers (for multi-provider auth like GitHub, Google, Email).
 
-    UI <-->|REST API| API
-    AUTH <--> DB
-    SOURCE <--> FS
-    SOURCE <--> DB
-    BUILDER --> FS
-    DEPLOYER <-->|Execute Commands| DOCK
-    DEPLOYER <--> DB
+4. Container Runtime Layer (`dock`)
+   - Interfaces with a custom container engine (`dock` / `dock-minidocker`).
+   - Handles `dock build`, `dock run`, `dock ps`, and `dock inspect`.
+
+---
+
+## Database Setup
+
+### 1. PostgreSQL Setup
+
+1. Log into PostgreSQL as the superuser:
+   ```bash
+   sudo -u postgres psql
+   ```
+
+2. Create the database and database user:
+   ```sql
+   CREATE DATABASE parcel;
+   CREATE USER parcel WITH PASSWORD 'your_secure_password';
+   GRANT ALL PRIVILEGES ON DATABASE parcel TO parcel;
+   ALTER DATABASE parcel OWNER TO parcel;
+   ```
+
+3. Exit psql:
+   ```sql
+   \q
+   ```
+
+### 2. Environment Configuration
+
+Copy the example environment file and set your credentials:
+```bash
+cp backend/.env.example backend/.env
 ```
 
----
-
-## Project Boundaries & Feature Roadmap (v1)
-
-### 1. Authentication & User Management
-- [x] **GitHub OAuth Integration**: Complete OAuth authorization code flow.
-- [ ] **Multi-Provider Authentication**: Support 3 authentication mechanisms:
-  - [x] GitHub OAuth
-  - [ ] Google OAuth / Second OAuth Provider
-  - [ ] Email & Password / Local Credentials
-- [ ] **User Persistence**: Store user profiles, access tokens, and credentials in the Database.
-
----
-
-### 2. Source Code Ingestion
-- [x] **GitHub Repository Listing**: Fetch user repositories via GitHub API.
-- [ ] **Tarball/ZIP Source Upload**: Support direct ZIP file upload for manual repository deployments.
-- [ ] **Source Metadata Storage**: Persist repository, branch, commit, and source metadata in the Database.
-
----
-
-### 3. Build File Generation
-- [ ] **Dynamic Build Scripting**: Detect framework/language and generate appropriate `Dockerfile` or build spec.
-- [ ] **Build Environment Isolation**: Download and extract source archives into dedicated workspace build directories (`/tmp/parcel-builds/`).
-- [ ] **Build Status Telemetry**: Log build outputs and status updates to DB.
-
----
-
-### 4. Custom Container Runtime Integration (`dock`)
-- [ ] **Image Building**: Execute `dock build` using generated build specifications.
-- [ ] **Container Execution**: Spawn isolated application containers with `dock run`.
-- [ ] **Dashboard Monitoring (`dock ps` / `dock inspect`)**:
-  - Periodically poll container statuses via `dock ps`.
-  - Fetch detailed process and network metadata via `dock inspect`.
-- [ ] **Container Telemetry Persistence**: Save container runtime statistics, ports, and logs in the DB for UI rendering.
-
----
-
-## Repository Structure
-
-```
-.
-├── backend/
-│   ├── app/
-│   │   ├── api/          # Route handlers (auth, source, deploy)
-│   │   ├── core/         # Config, security, logging
-│   │   ├── db/           # Database models, connection, session
-│   │   ├── models/       # Database schemas (User, Document, Container)
-│   │   ├── schemas/      # Pydantic request/response schemas
-│   │   ├── services/     # GitHub API, tarball, dock engine driver
-│   │   └── main.py       # FastAPI application entry point
-│   ├── requirements.txt
-│   └── .env
-├── frontend/
-│   ├── index.html        # Clean HTML5 entry point
-│   ├── main.js           # Vanilla JS dashboard logic
-│   ├── style.css         # Minimal dark mode styling
-│   └── vite.config.ts    # Vite development proxy configuration
-├── docker-compose.yml
-└── README.md
+Ensure `DATABASE_URL` in `backend/.env` is set correctly:
+```env
+DATABASE_URL=postgresql+asyncpg://parcel:your_secure_password@localhost:5432/parcel
 ```
 
----
+### 3. Alembic Database Migrations
 
-## Getting Started
-
-### 1. Backend Setup (FastAPI)
+Run database migrations to create the required tables (`users`, `auth_providers`, `alembic_version`):
 
 ```bash
 # Navigate to backend directory
 cd backend
 
-# Install Python dependencies
-pip install -r requirements.txt
+# Run pending migrations
+alembic upgrade head
+```
 
-# Start the API server
+If you modify models in `backend/app/models/`, generate a new migration:
+```bash
+alembic revision --autogenerate -m "describe_your_change"
+alembic upgrade head
+```
+
+---
+
+## Database Models
+
+- users: Primary user profile table (`id`, `name`, `email`, `created_at`, `updated_at`).
+- auth_providers: Stores authentication methods associated with users (`id`, `user_id`, `provider`, `provider_user_id`, `password_hash`, `created_at`). Supports `email`, `github`, and `google` authentication.
+
+---
+
+## Project Boundaries & v1 Roadmap Checklist
+
+### 1. Authentication & User Management
+- [x] GitHub OAuth Integration
+- [ ] Multi-Provider Authentication (GitHub, Google, Email/Password)
+- [x] User & AuthProvider Database Persistence (SQLAlchemy + PostgreSQL + Alembic)
+
+### 2. Source Code Ingestion
+- [x] GitHub Repository Listing via GitHub API
+- [ ] ZIP Tarball Source Upload
+- [ ] Source Metadata Storage in DB
+
+### 3. Build File Generation
+- [ ] Framework detection & dynamic Dockerfile generation
+- [ ] Isolated workspace build directories (`/tmp/parcel-builds/`)
+- [ ] Build logs and status storage in DB
+
+### 4. Custom Container Runtime (`dock`)
+- [ ] Image Building via `dock build`
+- [ ] Container Launching via `dock run`
+- [ ] Monitoring via `dock ps` and `dock inspect`
+- [ ] Persisting telemetry, ports, and logs to DB
+
+---
+
+## Quick Start Guide
+
+### 1. Start Backend API
+```bash
+cd backend
+pip install -r requirements.txt
+alembic upgrade head
 uvicorn app.main:app --reload --port 8000
 ```
 
-### 2. Frontend Setup (Vite + Vanilla JS)
-
+### 2. Start Frontend
 ```bash
-# Navigate to frontend directory
 cd frontend
-
-# Install Node dependencies
 npm install
-
-# Start Vite dev server
 npm run dev
 ```
 
-Visit **`http://localhost:5173`** in your browser to access the dashboard!
+Open `http://localhost:5173` in your browser.

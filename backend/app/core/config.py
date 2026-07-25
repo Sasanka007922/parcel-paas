@@ -14,3 +14,5 @@ if not os.path.exists(DOWNLOAD_DIR):
 BUILD_DIR="/tmp/parcel-builds/builds"
 if not os.path.exists(BUILD_DIR):
     os.makedirs(BUILD_DIR)
+
+DB_URL=os.getenv("DATABASE_URL")
