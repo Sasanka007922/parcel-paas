@@ -15,6 +15,7 @@ The system consists of four main layers:
 2. Backend API Layer
    - Built with FastAPI (Python) and SQLAlchemy Async ORM.
    - Handles authentication, OAuth integrations, source downloads, and container operations.
+   - Core infrastructure includes `security.py` (password hashing & JWT management) and `logging.py` (thread-safe structured logging).
 
 3. Persistence & Database Layer
    - PostgreSQL database accessed asynchronously via asyncpg.
@@ -88,24 +89,35 @@ alembic upgrade head
 
 ---
 
+## Core Infrastructure & Utilities
+
+- **`app/core/security.py`**: Handles secure password hashing and verification using `bcrypt`, along with JWT access token generation and validation using `PyJWT`.
+- **`app/core/logging.py`**: Custom thread-safe structured logger (`Logger`, `LogLevel`) with support for multi-level logging (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `FATAL`), exception tracebacks, terminal output (`stdout`/`stderr`), and daily log file writing to `backend/app/logs/`.
+
+---
+
 ## Project Boundaries & v1 Roadmap Checklist
 
 ### 1. Authentication & User Management
 - [x] GitHub OAuth Integration
 - [ ] Multi-Provider Authentication (GitHub, Google, Email/Password)
+- [x] Password Hashing & JWT Token Management (`app/core/security.py`)
 - [x] User & AuthProvider Database Persistence (SQLAlchemy + PostgreSQL + Alembic)
 
-### 2. Source Code Ingestion
+### 2. Core Infrastructure & Logging
+- [x] Custom Thread-Safe Application Logging (`app/core/logging.py`)
+
+### 3. Source Code Ingestion
 - [x] GitHub Repository Listing via GitHub API
 - [ ] ZIP Tarball Source Upload
 - [ ] Source Metadata Storage in DB
 
-### 3. Build File Generation
+### 4. Build File Generation
 - [ ] Framework detection & dynamic Dockerfile generation
 - [ ] Isolated workspace build directories (`/tmp/parcel-builds/`)
 - [ ] Build logs and status storage in DB
 
-### 4. Custom Container Runtime (`dock`)
+### 5. Custom Container Runtime (`dock`)
 - [ ] Image Building via `dock build`
 - [ ] Container Launching via `dock run`
 - [ ] Monitoring via `dock ps` and `dock inspect`
