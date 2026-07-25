@@ -16,3 +16,6 @@ if not os.path.exists(BUILD_DIR):
     os.makedirs(BUILD_DIR)
 
 DB_URL=os.getenv("DATABASE_URL")
+JWT_SECRET=os.getenv("JWT_SECRET")
+JWT_ALGO=os.getenv("JWT_ALGORITHM")
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES")
